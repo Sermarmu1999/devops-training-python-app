@@ -1,19 +1,16 @@
 pipeline {
-
-    agent { dockerfile true }
-    stages {
-       stage('Test') {
-            
-            steps {
-                sh 'pytest -q'
-            }
+  agent any
+  stages {
+    stage('Test') {
+      agent {
+        docker {
+          image 'python:3.6-slim'
         }
-         stage('Lint') {
-           
-            steps {
-                sh 'pip install -r requirements.txt flake8 mypy'
-                sh 'make lint'
-            }
-        }
+      }
+      steps {
+        sh 'python --version'
+        sh 'echo "Stage dummy. En la Practica 2 ejecutaras aqui los tests unitarios."'
+      }
     }
+  }
 }
