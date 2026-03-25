@@ -14,8 +14,14 @@ pipeline {
         }
       }
       steps {
-        sh 'python --version'
-        sh 'echo "Stage dummy. En la Practica 2 ejecutaras aqui los tests unitarios."'
+        echo 'Instalando dependencias del sistema...'
+        sh 'apt-get update && apt-get install -y make'
+        
+        echo 'Instalando dependencias de Python...'
+        sh 'pip install -r requirements.txt pytest'
+        
+        echo 'Ejecutando tests unitarios...'
+        sh 'pytest tests/'
       }
     }
   }
