@@ -7,21 +7,44 @@ pipeline {
         echo "Build: ${env.BUILD_NUMBER}"
       }
     }
-    stage('Test') {
-      agent {
-        docker {
-          image 'python:3.6-slim'
+
+    // EJERCICIO 3: Construir imagen CI con make
+    stage('CI - Build tools image') {
+      steps {
+        script {
+          echo 'Construyendo la imagen Docker de herramientas CI...'
+          docker.build("python-ci-tools:${env.BUILD_NUMBER}", "-f devops/ci.Dockerfile .")
         }
       }
+    }
+
+    // EJERCICIO 3: Separar stage Lint
+    stage('CI - Lint') {
       steps {
-        echo 'Instalando dependencias del sistema...'
-        sh 'apt-get update && apt-get install -y make'
-        
-        echo 'Instalando dependencias de Python...'
-        sh 'pip install -r requirements.txt pytest'
-        
-        echo 'Ejecutando tests unitarios...'
-        sh 'pytest tests/'
+        script {
+          docker.image("python-ci-tools:${env.BUILD_NUMBER}").inside {
+            echo 'Instalando dependencias de Lint...'
+            sh 'pip install -r requirements.txt flake8 mypy'
+            
+            echo 'Ejecutando revisión de código...'
+            sh 'make lint'
+          }
+        }
+      }
+    }
+
+    // EJERCICIO 3: Separar stage Test
+    stage('CI - Test') {
+      steps {
+        script {
+          docker.image("python-ci-tools:${env.BUILD_NUMBER}").inside {
+            echo 'Instalando dependencias para las pruebas...'
+            sh 'pip install -r requirements.txt pytest'
+            
+            echo 'Ejecutando tests unitarios...'
+            sh 'make test'
+          }
+        }
       }
     }
   }
