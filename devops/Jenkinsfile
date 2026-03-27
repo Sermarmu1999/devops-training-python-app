@@ -39,7 +39,7 @@ pipeline {
         script {
           docker.image("python-ci-tools:${env.BUILD_NUMBER}").inside {
             echo 'Instalando dependencias para las pruebas...'
-            sh 'pip install -r requirements.txt pytest'
+            sh 'pip install -r requirements.txt pytest flake8 mypy'
             
             echo 'Ejecutando tests unitarios...'
             sh 'make test'
