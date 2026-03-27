@@ -1,3 +1,10 @@
+// EJERCICIO 4: Función Groovy reutilizable
+def runInDocker(String image, Closure body) {
+    docker.image(image).inside {
+        body()
+    }
+}
+
 pipeline {
   agent any
   stages {
@@ -18,11 +25,12 @@ pipeline {
       }
     }
 
-    // EJERCICIO 3: Separar stage Lint
+    // EJERCICIO 3 y 4: Separar stage Lint y usar función Groovy
     stage('CI - Lint') {
       steps {
         script {
-          docker.image("python-ci-tools:${env.BUILD_NUMBER}").inside {
+          // Usar la nueva función en lugar de docker.image().inside
+          runInDocker("python-ci-tools:${env.BUILD_NUMBER}") {
             echo 'Instalando dependencias de Lint...'
             sh 'pip install -r requirements.txt flake8 mypy'
             
@@ -33,11 +41,12 @@ pipeline {
       }
     }
 
-    // EJERCICIO 3: Separar stage Test
+    // EJERCICIO 3 y 4: Separar stage Test y usar función Groovy
     stage('CI - Test') {
       steps {
         script {
-          docker.image("python-ci-tools:${env.BUILD_NUMBER}").inside {
+          // Usar la nueva función en lugar de docker.image().inside
+          runInDocker("python-ci-tools:${env.BUILD_NUMBER}") {
             echo 'Instalando dependencias para las pruebas...'
             sh 'pip install -r requirements.txt pytest flake8 mypy'
             
