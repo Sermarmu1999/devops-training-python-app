@@ -66,5 +66,25 @@ pipeline {
         }
       }
     }
+
+    // EJERCICIO 6: CD con Docker Compose (up -> logs -> down)
+    stage('CD') {
+      steps {
+        echo 'Iniciando despliegue local con Docker Compose...'
+        sh 'docker compose up -d'
+        
+        echo 'Esperando 5 segundos a que levante el servicio...'
+        sh 'sleep 5'
+        
+        echo 'Mostrando logs del contenedor principal para validar el despliegue...'
+        sh 'docker compose logs app' // 'app' es el nombre del servicio en el docker-compose.yml
+      }
+      post {
+        always {
+          echo 'Ejecutando limpieza de recursos temporales...'
+          sh 'docker compose down --volumes' // Esto se ejecuta SIEMPRE, incluso si fallan los steps anteriores
+        }
+      }
+    }
   }
 }
