@@ -56,5 +56,15 @@ pipeline {
         }
       }
     }
+    
+    // EJERCICIO 5: Construir la imagen Docker en CI
+    stage('Build image') {
+      steps {
+        script {
+          echo 'Construyendo la imagen Docker de la aplicación...'
+          docker.build("contrerasadr/devops-training-python-app:0.0.1", "-f devops/Dockerfile .") // Se contruye usando el Dockerfile principal de la aplicación
+        }
+      }
+    }
   }
 }
