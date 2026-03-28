@@ -1,0 +1,36 @@
+name: Python CI/CD Pipeline
+
+# EJERCICIO 1: Triggers (Cuándo se ejecuta)
+on:
+  push:
+    branches:
+      - '**' # Se ejecuta al hacer push en cualquier rama
+  pull_request:
+    branches:
+      - develop
+      - master
+  workflow_dispatch: # Ejecución manual (como el "Build with parameters")
+    inputs:
+      RUN_CD:
+        description: 'Ejecutar CD'
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  # EJERCICIO 2: Estructura base y primer Job
+  ci:
+    runs-on: ubuntu-latest # Se utiliza una máquina de la nube de GitHub
+    
+    steps:
+      # Paso obligatorio para que GitHub descargue el código en la máquina
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step de información
+      - name: Info
+        run: |
+          echo "Rama: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Sistema Operativo: ${{ runner.os }}"
+          echo "Nombre del Runner: ${{ runner.name }}"
