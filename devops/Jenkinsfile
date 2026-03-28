@@ -5,6 +5,21 @@ def runInDocker(String image, Closure body) {
     }
 }
 
+// EJERCICIO 10: "Mini librería" para Compose
+def composeUpTestDown(Map args) {
+    try {
+        echo "--> [composeUpTestDown] Ejecutando UP..."
+        sh args.up
+        
+        echo "--> [composeUpTestDown] Ejecutando TEST/VALIDACION..."
+        sh args.test
+    } finally {
+        // El bloque finally asegura que esto se ejecuta SIEMPRE, aunque el test falle
+        echo "--> [composeUpTestDown] Ejecutando DOWN (Limpieza)..."
+        sh "${args.down} || true"
+    }
+}
+
 pipeline {
   agent any
 
@@ -121,27 +136,19 @@ pipeline {
           // EJERCICIO 6.2: Simular despliegue a DEV/PRO
           env.DEPLOY_ENV = (env.BRANCH_NAME == 'master') ? 'pro' : 'dev'
           echo "Deploying to ${env.DEPLOY_ENV}"
-          echo "CD habilitado: RUN_CD=${params.RUN_CD}, branch=${env.BRANCH_NAME}"
-          
-          // Uso del nombre de proyecto dinámico (Extra del 6.2)
-          echo 'Iniciando despliegue local con Docker Compose...'
-          sh "docker compose -p ${env.DEPLOY_ENV} up -d"
-          
-          echo 'Esperando 5 segundos a que levante el servicio...'
-          sh 'sleep 5'
-          
-          // Uso de la variable APP_URL del Ejercicio 6.4
-          sh "echo URL=${env.APP_URL}"
-          
-          echo 'Mostrando logs del contenedor principal...'
-          sh "docker compose -p ${env.DEPLOY_ENV} logs app"
+
+          // EJERCICIO 10: Uso de la función pasándole un mapa (Map args)
+          composeUpTestDown(
+            up: "docker compose -p ${env.DEPLOY_ENV} up -d && sleep 5",
+            test: "echo URL=${env.APP_URL} && docker compose -p ${env.DEPLOY_ENV} logs app",
+            down: "docker compose -p ${env.DEPLOY_ENV} down --volumes"
+          )
         }
       }
       // EJERCICIO 6.5: Hooks post y limpieza de recursos
       post {
         always {
-          echo 'Ejecutando limpieza de recursos temporales...'
-          sh "docker compose -p ${env.DEPLOY_ENV} down --volumes || true"
+          // La limpieza del compose down ya la hace la función. Aquí sólo se borra la imagen local.
           sh "docker rmi ${env.IMAGE_NAME} || true"
         }
         success {
@@ -149,7 +156,6 @@ pipeline {
         }
         failure {
           echo 'FAILURE'
-          sh "docker compose -p ${env.DEPLOY_ENV} logs || true"
         }
       }
     }
