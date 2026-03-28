@@ -7,6 +7,19 @@ def runInDocker(String image, Closure body) {
 
 pipeline {
   agent any
+
+  // EJERCICIO 6.3: Parámetros para activar/desactivar comportamiento
+  parameters {
+    booleanParam(name: 'RUN_CD', defaultValue: false, description: 'Ejecutar CD')
+  }
+
+  // EJERCICIO 6.4: Variables de entorno
+  environment {
+    CI_IMAGE_NAME = "python-ci-tools:${env.BUILD_NUMBER}"
+    IMAGE_NAME = "contrerasadr/devops-training-python-app:0.0.1"
+    APP_URL = "http://localhost:5001/"
+  }
+  
   stages {
     stage('Info') {
       steps {
@@ -30,7 +43,7 @@ pipeline {
       steps {
         script {
           // Usar la nueva función en lugar de docker.image().inside
-          runInDocker("python-ci-tools:${env.BUILD_NUMBER}") {
+          runInDocker(env.CI_IMAGE_NAME) { // Utilizar la variable de entorno
             echo 'Instalando dependencias de Lint...'
             sh 'pip install -r requirements.txt flake8 mypy'
             
@@ -46,7 +59,7 @@ pipeline {
       steps {
         script {
           // Usar la nueva función en lugar de docker.image().inside
-          runInDocker("python-ci-tools:${env.BUILD_NUMBER}") {
+          runInDocker(env.CI_IMAGE_NAME) { // Utilizar la variable de entorno
             echo 'Instalando dependencias para las pruebas...'
             sh 'pip install -r requirements.txt pytest flake8 mypy'
             
@@ -61,28 +74,58 @@ pipeline {
     stage('Build image') {
       steps {
         script {
-          echo 'Construyendo la imagen Docker de la aplicación...'
-          docker.build("contrerasadr/devops-training-python-app:0.0.1", "-f devops/Dockerfile .") // Se contruye usando el Dockerfile principal de la aplicación
+          // Uso de la variable de entorno del Ejercicio 6.4
+          echo "Imagen: ${env.IMAGE_NAME}"
+          docker.build("${env.IMAGE_NAME}", "-f devops/Dockerfile .") // Se contruye usando el Dockerfile principal de la aplicación
         }
       }
     }
 
     // EJERCICIO 6: CD con Docker Compose (up -> logs -> down)
+    // EJERCICIOS 6.1 al 6.5 aplicados en el CD
     stage('CD') {
-      steps {
-        echo 'Iniciando despliegue local con Docker Compose...'
-        sh 'docker compose up -d'
-        
-        echo 'Esperando 5 segundos a que levante el servicio...'
-        sh 'sleep 5'
-        
-        echo 'Mostrando logs del contenedor principal para validar el despliegue...'
-        sh 'docker compose logs app' // 'app' es el nombre del servicio en el docker-compose.yml
+      // EJERCICIO 6.1: Ejecutar CD por rama o parámetro
+      when {
+        anyOf {
+          expression { return params.RUN_CD }
+          branch 'develop'
+          branch 'master'
+        }
       }
+      steps {
+        script {
+          // EJERCICIO 6.2: Simular despliegue a DEV/PRO
+          env.DEPLOY_ENV = (env.BRANCH_NAME == 'master') ? 'pro' : 'dev'
+          echo "Deploying to ${env.DEPLOY_ENV}"
+          echo "CD habilitado: RUN_CD=${params.RUN_CD}, branch=${env.BRANCH_NAME}"
+          
+          // Uso del nombre de proyecto dinámico (Extra del 6.2)
+          echo 'Iniciando despliegue local con Docker Compose...'
+          sh "docker compose -p ${env.DEPLOY_ENV} up -d"
+          
+          echo 'Esperando 5 segundos a que levante el servicio...'
+          sh 'sleep 5'
+          
+          // Uso de la variable APP_URL del Ejercicio 6.4
+          sh "echo URL=${env.APP_URL}"
+          
+          echo 'Mostrando logs del contenedor principal...'
+          sh "docker compose -p ${env.DEPLOY_ENV} logs app"
+        }
+      }
+      // EJERCICIO 6.5: Hooks post y limpieza de recursos
       post {
         always {
           echo 'Ejecutando limpieza de recursos temporales...'
-          sh 'docker compose down --volumes' // Esto se ejecuta SIEMPRE, incluso si fallan los steps anteriores
+          sh "docker compose -p ${env.DEPLOY_ENV} down --volumes || true"
+          sh "docker rmi ${env.IMAGE_NAME} || true"
+        }
+        success {
+          echo 'SUCCESS'
+        }
+        failure {
+          echo 'FAILURE'
+          sh "docker compose -p ${env.DEPLOY_ENV} logs || true"
         }
       }
     }
