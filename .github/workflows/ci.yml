@@ -76,13 +76,13 @@ jobs:
       - name: CI - Lint
         run: |
           echo "Ejecutando revisión de formato de código (Lint)..."
-          docker run --rm -v ${{ github.workspace }}:/app ${{ env.CI_IMAGE_NAME }} make lint
+          docker run --rm -v ${{ github.workspace }}:/app ${{ env.CI_IMAGE_NAME }} bash -c "pip install -r requirements.txt flake8 mypy black && make lint"
 
       # EJERCICIO 6: Ejecutar Test montando el código en el contenedor CI
       - name: CI - Test
         run: |
           echo "Ejecutando tests unitarios con pytest..."
-          docker run --rm -v ${{ github.workspace }}:/app ${{ env.CI_IMAGE_NAME }} make test
+          docker run --rm -v ${{ github.workspace }}:/app ${{ env.CI_IMAGE_NAME }} bash -c "pip install -r requirements.txt pytest && make test"
 
       # EJERCICIO 7: Construir la imagen Docker de la aplicación
       - name: Build App Image
