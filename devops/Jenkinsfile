@@ -11,6 +11,8 @@ pipeline {
   // EJERCICIO 6.3: Parámetros para activar/desactivar comportamiento
   parameters {
     booleanParam(name: 'RUN_CD', defaultValue: false, description: 'Ejecutar CD')
+    // EJERCICIO 7: Parámetro para activar la subida al registry
+    booleanParam(name: 'ENABLE_REGISTRY_PUSH', defaultValue: false, description: 'Subir imagen al registry privado')
   }
 
   // EJERCICIO 6.4: Variables de entorno
@@ -18,6 +20,8 @@ pipeline {
     CI_IMAGE_NAME = "python-ci-tools:${env.BUILD_NUMBER}"
     IMAGE_NAME = "contrerasadr/devops-training-python-app:0.0.1"
     APP_URL = "http://localhost:5001/"
+    // EJERCICIO 7: Variable con la ruta del registry local
+    REGISTRY_IMAGE = "local-registry:5000/contrerasadr/devops-training-python-app:${env.BUILD_NUMBER}"
   }
   
   stages {
@@ -77,6 +81,26 @@ pipeline {
           // Uso de la variable de entorno del Ejercicio 6.4
           echo "Imagen: ${env.IMAGE_NAME}"
           docker.build("${env.IMAGE_NAME}", "-f devops/Dockerfile .") // Se contruye usando el Dockerfile principal de la aplicación
+        }
+      }
+    }
+
+    // EJERCICIO 7: Push a un registry privado
+    stage('Push image') {
+      when {
+        expression { return params.ENABLE_REGISTRY_PUSH }
+      }
+      steps {
+        script {
+          echo "Etiquetando la imagen para el registry local..."
+          sh "docker tag ${env.IMAGE_NAME} ${env.REGISTRY_IMAGE}"
+          
+          echo "Autenticando y subiendo al registry..."
+          // Usamos las credenciales de Jenkins
+          withCredentials([usernamePassword(credentialsId: 'local-registry-creds', passwordVariable: 'REG_PASS', usernameVariable: 'REG_USER')]) {
+            sh "docker login -u ${REG_USER} -p ${REG_PASS} local-registry:5000"
+            sh "docker push ${env.REGISTRY_IMAGE}"
+          }
         }
       }
     }
