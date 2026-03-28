@@ -1,24 +1,5 @@
-// EJERCICIO 4: Función Groovy reutilizable
-def runInDocker(String image, Closure body) {
-    docker.image(image).inside {
-        body()
-    }
-}
-
-// EJERCICIO 10: "Mini librería" para Compose
-def composeUpTestDown(Map args) {
-    try {
-        echo "--> [composeUpTestDown] Ejecutando UP..."
-        sh args.up
-        
-        echo "--> [composeUpTestDown] Ejecutando TEST/VALIDACION..."
-        sh args.test
-    } finally {
-        // El bloque finally asegura que esto se ejecuta SIEMPRE, aunque el test falle
-        echo "--> [composeUpTestDown] Ejecutando DOWN (Limpieza)..."
-        sh "${args.down} || true"
-    }
-}
+// EJERCICIO 12: Importar la librería compartida de Jenkins
+@Library('iac-devops-lib') _
 
 pipeline {
   agent any
@@ -40,10 +21,20 @@ pipeline {
   }
   
   stages {
-    stage('Info') {
+    // EJERCICIO 12: Usar readVersion para cargar variables de forma dinámica
+    stage('Info & Setup') {
       steps {
-        echo "Job: ${env.JOB_NAME}"
-        echo "Build: ${env.BUILD_NUMBER}"
+        script {
+          echo "Job: ${env.JOB_NAME}"
+          echo "Build: ${env.BUILD_NUMBER}"
+          
+          // Leer versión desde el archivo VERSION en la raíz del repo
+          env.APP_VERSION = devopsLib.readVersion('VERSION')
+          env.IMAGE_NAME = "contrerasadr/devops-training-python-app:${env.APP_VERSION}"
+          env.REGISTRY_IMAGE = "local-registry:5000/${env.IMAGE_NAME}"
+          
+          echo "Versión de la App cargada: ${env.APP_VERSION}"
+        }
       }
     }
 
@@ -61,8 +52,8 @@ pipeline {
     stage('CI - Lint') {
       steps {
         script {
-          // Usar la nueva función en lugar de docker.image().inside
-          runInDocker(env.CI_IMAGE_NAME) { // Utilizar la variable de entorno
+          // EJERCICIO 12: Usar función de la librería compartida
+          devopsLib.runInDocker(env.CI_IMAGE_NAME) {
             echo 'Instalando dependencias de Lint...'
             sh 'pip install -r requirements.txt flake8 mypy'
             
@@ -77,8 +68,8 @@ pipeline {
     stage('CI - Test') {
       steps {
         script {
-          // Usar la nueva función en lugar de docker.image().inside
-          runInDocker(env.CI_IMAGE_NAME) { // Utilizar la variable de entorno
+          // EJERCICIO 12: Usar función de la librería compartida
+          devopsLib.runInDocker(env.CI_IMAGE_NAME) {
             echo 'Instalando dependencias para las pruebas...'
             sh 'pip install -r requirements.txt pytest flake8 mypy'
             
@@ -137,8 +128,15 @@ pipeline {
           env.DEPLOY_ENV = (env.BRANCH_NAME == 'master') ? 'pro' : 'dev'
           echo "Deploying to ${env.DEPLOY_ENV}"
 
-          // EJERCICIO 10: Uso de la función pasándole un mapa (Map args)
-          composeUpTestDown(
+          // EJERCICIO 12: Actualizar el docker-compose.yml con la imagen nueva
+          devopsLib.setComposeServiceImage(
+            composeFile: 'docker-compose.yml',
+            service: 'app',
+            image: env.IMAGE_NAME
+          )
+          
+          // EJERCICIO 12: Usar la función de CD de la librería compartida
+          devopsLib.composeUpTestDown(
             up: "docker compose -p ${env.DEPLOY_ENV} up -d && sleep 5",
             test: "echo URL=${env.APP_URL} && docker compose -p ${env.DEPLOY_ENV} logs app",
             down: "docker compose -p ${env.DEPLOY_ENV} down --volumes"
