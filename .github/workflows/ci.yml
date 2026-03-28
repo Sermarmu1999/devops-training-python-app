@@ -28,9 +28,10 @@ on:
 
 # EJERCICIO 3: Variables de entorno a nivel global del workflow
 env:
-  IMAGE_NAME: "python-app:${{ github.sha }}"
+  IMAGE_NAME: "python-app:latest" # Cambiado a latest para que el compose de luego lo encuentre
   APP_URL: "http://localhost:5001"
   NIVEL_VAR: "Global del workflow"
+  CI_IMAGE_NAME: "python-ci-tools:${{ github.sha }}" # Nueva variable para el Ejercicio 6
 
 jobs:
   # EJERCICIO 2: Estructura base y primer Job
@@ -64,3 +65,27 @@ jobs:
           echo "=== EJERCICIO 4: Parámetros manuales ==="
           echo "RUN_CD activado?: ${{ inputs.RUN_CD }}"
           echo "Entorno seleccionado: ${{ inputs.DEPLOY_ENV }}"
+      
+      # EJERCICIO 6: Construir imagen de herramientas CI
+      - name: Build CI tools image
+        run: |
+          echo "Construyendo la imagen Docker de herramientas CI..."
+          docker build -t ${{ env.CI_IMAGE_NAME }} -f devops/ci.Dockerfile .
+
+      # EJERCICIO 6: Ejecutar Lint montando el código en el contenedor CI
+      - name: CI - Lint
+        run: |
+          echo "Ejecutando revisión de formato de código (Lint)..."
+          docker run --rm -v ${{ github.workspace }}:/app ${{ env.CI_IMAGE_NAME }} make lint
+
+      # EJERCICIO 6: Ejecutar Test montando el código en el contenedor CI
+      - name: CI - Test
+        run: |
+          echo "Ejecutando tests unitarios con pytest..."
+          docker run --rm -v ${{ github.workspace }}:/app ${{ env.CI_IMAGE_NAME }} make test
+
+      # EJERCICIO 7: Construir la imagen Docker de la aplicación
+      - name: Build App Image
+        run: |
+          echo "Construyendo la imagen Docker final de la app Python..."
+          docker build -t ${{ env.IMAGE_NAME }} -f devops/Dockerfile .
