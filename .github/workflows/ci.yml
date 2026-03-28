@@ -82,7 +82,7 @@ jobs:
       - name: CI - Test
         run: |
           echo "Ejecutando tests unitarios con pytest..."
-          docker run --rm -v ${{ github.workspace }}:/app ${{ env.CI_IMAGE_NAME }} bash -c "pip install -r requirements.txt pytest && make test"
+          docker run --rm -v ${{ github.workspace }}:/app ${{ env.CI_IMAGE_NAME }} bash -c "pip install -r requirements.txt pytest flake8 mypy && make test"
 
       # EJERCICIO 7: Construir la imagen Docker de la aplicación
       - name: Build App Image
