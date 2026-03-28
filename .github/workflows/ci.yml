@@ -16,11 +16,29 @@ on:
         required: true
         type: boolean
         default: false
+      # EJERCICIO 4: Nuevo input de tipo lista (choice)
+      DEPLOY_ENV:
+        description: 'Entorno de despliegue'
+        required: true
+        type: choice
+        options:
+          - DEV
+          - PRO
+        default: DEV
+
+# EJERCICIO 3: Variables de entorno a nivel global del workflow
+env:
+  IMAGE_NAME: "python-app:${{ github.sha }}"
+  APP_URL: "http://localhost:5001"
+  NIVEL_VAR: "Global del workflow"
 
 jobs:
   # EJERCICIO 2: Estructura base y primer Job
   ci:
     runs-on: ubuntu-latest # Se utiliza una máquina de la nube de GitHub
+    # EJERCICIO 3: Sobrescribir la variable a nivel del job
+    env:
+      NIVEL_VAR: "Sobrescrita dentro del job CI"
     
     steps:
       # Paso obligatorio para que GitHub descargue el código en la máquina
@@ -34,3 +52,15 @@ jobs:
           echo "Commit: ${{ github.sha }}"
           echo "Sistema Operativo: ${{ runner.os }}"
           echo "Nombre del Runner: ${{ runner.name }}"
+      
+      # EJERCICIOS 3 y 4: Imprimir las variables y los inputs
+      - name: Validar Variables y Parámetros
+        run: |
+          echo "=== EJERCICIO 3: Variables ==="
+          echo "Imagen a construir: ${{ env.IMAGE_NAME }}"
+          echo "URL de la App: ${{ env.APP_URL }}"
+          echo "Nivel de la variable: ${{ env.NIVEL_VAR }}"
+          
+          echo "=== EJERCICIO 4: Parámetros manuales ==="
+          echo "RUN_CD activado?: ${{ inputs.RUN_CD }}"
+          echo "Entorno seleccionado: ${{ inputs.DEPLOY_ENV }}"
