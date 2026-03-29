@@ -1,0 +1,22 @@
+# EJERCICIO 1: Definición de stages (ci y cd)
+stages:
+  - ci
+  - cd
+
+# EJERCICIO 2: Definición de variables globales
+variables:
+  IMAGE_REPO: "devops-training-python-app"
+  REGISTRY_HOST: "local-registry:5000"
+  REGISTRY_REPO: "$REGISTRY_HOST/$IMAGE_REPO"
+  COMPOSE_SERVICE: "app"
+
+# EJERCICIO 1 y 2: Job mínimo para validar sintaxis e imprimir variables predefinidas
+ci:info:
+  stage: ci
+  image: alpine:3.19
+  script:
+    - echo "=== Ejercicio 1 y 2: Validando variables predefinidas y globales ==="
+    - echo "Rama actual (predefinida): $CI_COMMIT_BRANCH"
+    - echo "Commit SHA (predefinida): $CI_COMMIT_SHA"
+    - echo "Host del Registry (global): $REGISTRY_HOST"
+    - echo "Repositorio completo (global): $REGISTRY_REPO"
