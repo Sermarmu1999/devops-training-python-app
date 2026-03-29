@@ -33,7 +33,7 @@ env:
   NIVEL_VAR: "Global del workflow"
   CI_IMAGE_NAME: "python-ci-tools:${{ github.sha }}" # Nueva variable para el Ejercicio 6
   # OPCIONAL A: Ruta del registry de GitHub (GHCR)
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/python-app:latest
+  REGISTRY_IMAGE: ghcr.io/sermarmu1999/python-app:latest # Forzar el usuario en minúsculas
 
 jobs:
   # EJERCICIO 2: Estructura base y primer Job
