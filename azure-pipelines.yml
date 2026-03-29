@@ -63,3 +63,20 @@ stages:
               echo "=== Ejecutando Test dentro del contenedor ==="
               docker run --rm -v $(System.DefaultWorkingDirectory):/app -w /app python-ci-tools:$(Build.SourceVersion) make test
             displayName: 'Run Make Test'
+      
+      # EJERCICIO 5: Build de imagen Docker de la aplicación y publicación opcional
+      - job: CIBuild
+        displayName: 'Build Imagen Producción y Push Imagen'
+        dependsOn: CITests
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - script: |
+              echo "=== Ejercicio 5: Construyendo imagen Docker final ==="
+              docker build -t $(IMAGE_REPO):$(Build.SourceVersion) -f devops/Dockerfile .
+              
+              echo "=== Publicación Opcional: Push a Registry Local ==="
+              # Se simula la subida al local-registry definido en la estrategia local
+              docker tag $(IMAGE_REPO):$(Build.SourceVersion) local-registry:5000/$(IMAGE_REPO):$(Build.SourceVersion)
+              docker push local-registry:5000/$(IMAGE_REPO):$(Build.SourceVersion) || true
+            displayName: 'Docker Build (App) & Push'
