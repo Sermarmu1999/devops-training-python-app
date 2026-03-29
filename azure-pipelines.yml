@@ -1,0 +1,43 @@
+# EJERCICIO 1: Estructura mínima (trigger y pr)
+trigger:
+  - master
+  - develop
+
+pr:
+  - master
+  - develop
+
+# EJERCICIO 3: Definición de parámetros para ejecución manual
+parameters:
+  - name: RUN_CD
+    displayName: 'Forzar Despliegue Continuo (CD)'
+    type: boolean
+    default: false
+
+# EJERCICIO 2 y 3: Variable Groups y Variables Globales
+variables:
+  # Referencia teórica a "Pipelines -> Library -> Variable groups" (Ejercicio 2)
+  - group: devops-training-python-local
+  # Variables globales (Ejercicio 3)
+  - name: IMAGE_REPO
+    value: 'devops-training-python-app'
+  - name: COMPOSE_PROJECT_NAME
+    value: 'python-app-$(Build.SourceBranchName)'
+
+# EJERCICIO 1: Definición de Stages y Job de información
+stages:
+  - stage: CI
+    displayName: 'Continuous Integration'
+    jobs:
+      - job: InfoJob
+        displayName: 'Validación de Entorno'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - script: |
+              echo "=== Ejercicios 1, 2 y 3: Información del Pipeline ==="
+              echo "Rama actual: $(Build.SourceBranchName)"
+              echo "Commit SHA: $(Build.SourceVersion)"
+              echo "Parámetro RUN_CD: ${{ parameters.RUN_CD }}"
+              echo "Variable Global IMAGE_REPO: $(IMAGE_REPO)"
+            displayName: 'Imprimir contexto de ejecución'
