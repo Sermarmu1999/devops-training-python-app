@@ -102,7 +102,7 @@ jobs:
       
       # OPCIONAL A: Login y Push a GHCR
       - name: Push to GitHub Packages
-        if: github.ref_name == 'master' || github.ref_name == 'develop'
+        # Se quita el IF de las ramas para que se ejecute en la rama actual de trabajo sin tener que mergear a develop
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker tag ${{ env.IMAGE_NAME }} ${{ env.REGISTRY_IMAGE }}
