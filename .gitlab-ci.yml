@@ -40,8 +40,7 @@ ci:tests:
     - docker run --rm -v $(pwd):/app -w /app $CI_TOOLS_IMAGE make lint
     - docker run --rm -v $(pwd):/app -w /app $CI_TOOLS_IMAGE make test
 
-# EJERCICIO 4: Build de imagen Docker de la aplicación
-# Objetivo: Construir la imagen final (Dockerfile)
+# EJERCICIO 4: Build de imagen Docker de la aplicación - Construir la imagen final (Dockerfile)
 ci:build:
   stage: ci
   image: docker:27
@@ -57,3 +56,43 @@ ci:build:
     # Se construye la imagen usando el Dockerfile
     - docker build -t $IMAGE_REPO:$CI_COMMIT_SHA -f devops/Dockerfile .
     - echo "Imagen construida con éxito: $IMAGE_REPO:$CI_COMMIT_SHA"
+
+# EJERCICIOS 5 y 6: Simulación de Despliegue, Reglas y Cleanup - Desplegar condicionalmente usando Compose y limpiar recursos
+cd:deploy:
+  stage: cd
+  image: docker:27
+  services:
+    - docker:27-dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+  # Ejercicio 5: Reglas estrictas de ejecución y entornos dinámicos
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      variables:
+        ENV_NAME: "DEV"
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      variables:
+        ENV_NAME: "PRO"
+    - if: '$RUN_CD == "true"'
+      variables:
+        ENV_NAME: "MANUAL"
+  environment:
+    name: $ENV_NAME
+  # Ejercicio 6: Despliegue y validación
+  script:
+    - echo "=== Ejercicio 5: Desplegando en entorno $ENV_NAME ==="
+    # El runner necesita docker-compose instalado en su imagen base
+    - apk add --no-cache docker-compose
+    - echo "=== Ejercicio 6: Levantando stack con Docker Compose ==="
+    # Se usa el nombre del entorno para aislar los proyectos en Docker
+    - docker compose -p app-$ENV_NAME up -d
+    - echo "Esperando inicialización de servicios..."
+    - sleep 5
+    - docker compose -p app-$ENV_NAME ps
+    - docker compose -p app-$ENV_NAME logs
+  # Ejercicio 6: Limpieza garantizada
+  after_script:
+    - echo "=== Ejercicio 6: Ejecutando Cleanup ==="
+    - apk add --no-cache docker-compose
+    - docker compose -p app-$ENV_NAME down --volumes || true
+    - echo "Recursos liberados correctamente."
