@@ -32,11 +32,19 @@ env:
   APP_URL: "http://localhost:5001"
   NIVEL_VAR: "Global del workflow"
   CI_IMAGE_NAME: "python-ci-tools:${{ github.sha }}" # Nueva variable para el Ejercicio 6
+  # OPCIONAL A: Ruta del registry de GitHub (GHCR)
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/python-app:latest
 
 jobs:
   # EJERCICIO 2: Estructura base y primer Job
   ci:
     runs-on: ubuntu-latest # Se utiliza una máquina de la nube de GitHub
+
+    # Permisos necesarios para subir al Registry (Opcional A)
+    permissions:
+      contents: read
+      packages: write
+    
     # EJERCICIO 3: Sobrescribir la variable a nivel del job
     env:
       NIVEL_VAR: "Sobrescrita dentro del job CI"
@@ -72,23 +80,33 @@ jobs:
           echo "Construyendo la imagen Docker de herramientas CI..."
           docker build -t ${{ env.CI_IMAGE_NAME }} -f devops/ci.Dockerfile .
 
-      # EJERCICIO 6: Ejecutar Lint montando el código en el contenedor CI
-      - name: CI - Lint
-        run: |
-          echo "Ejecutando revisión de formato de código (Lint)..."
-          docker run --rm -v ${{ github.workspace }}:/app ${{ env.CI_IMAGE_NAME }} bash -c "pip install -r requirements.txt flake8 mypy black && make lint"
+      # OPCIONAL C: Se utiliza la Composite Action del repo IaC para el LINT
+      - name: CI - Lint (using Composite Action)
+        uses: Sermarmu1999/devops-training-iac-devops/.github/actions/devops-lib@develop
+        with:
+          image_name: ${{ env.CI_IMAGE_NAME }}
+          run_command: "pip install -r requirements.txt flake8 mypy black && make lint"
 
-      # EJERCICIO 6: Ejecutar Test montando el código en el contenedor CI
-      - name: CI - Test
-        run: |
-          echo "Ejecutando tests unitarios con pytest..."
-          docker run --rm -v ${{ github.workspace }}:/app ${{ env.CI_IMAGE_NAME }} bash -c "pip install -r requirements.txt pytest flake8 mypy && make test"
+      # OPCIONAL C: Se utiliza la misma acción para el TEST
+      - name: CI - Test (using Composite Action)
+        uses: Sermarmu1999/devops-training-iac-devops/.github/actions/devops-lib@develop
+        with:
+          image_name: ${{ env.CI_IMAGE_NAME }}
+          run_command: "pip install -r requirements.txt pytest flake8 mypy && make test"
 
       # EJERCICIO 7: Construir la imagen Docker de la aplicación
       - name: Build App Image
         run: |
           echo "Construyendo la imagen Docker final de la app Python..."
           docker build -t ${{ env.IMAGE_NAME }} -f devops/Dockerfile .
+      
+      # OPCIONAL A: Login y Push a GHCR
+      - name: Push to GitHub Packages
+        if: github.ref_name == 'master' || github.ref_name == 'develop'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag ${{ env.IMAGE_NAME }} ${{ env.REGISTRY_IMAGE }}
+          docker push ${{ env.REGISTRY_IMAGE }}
   
   # EJERCICIOS 8 y 9 (FASE CD)
   cd:
