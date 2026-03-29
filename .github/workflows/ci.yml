@@ -89,3 +89,40 @@ jobs:
         run: |
           echo "Construyendo la imagen Docker final de la app Python..."
           docker build -t ${{ env.IMAGE_NAME }} -f devops/Dockerfile .
+  
+  # EJERCICIOS 8 y 9 (FASE CD)
+  cd:
+    # El CD necesita que el CI termine primero con éxito
+    needs: ci
+    runs-on: ubuntu-latest
+    # EJERCICIO 8: Condición por rama o parámetro
+    if: ${{ inputs.RUN_CD == true || github.ref_name == 'develop' || github.ref_name == 'master' }}
+    # Se asocia el entorno de GitHub que se ha creado antes en la web (Ejercicio 5)
+    environment: ${{ github.ref_name == 'master' && 'PRO' || 'DEV' }}
+    
+    steps:
+      # Se necesita volver a descargar el código en esta nueva máquina para tener el docker-compose.yml
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # EJERCICIO 9: Simulación de despliegue con Compose
+      - name: Deploy con Docker Compose
+        run: |
+          echo "Iniciando despliegue local con Docker Compose..."
+          # Se usa un nombre de proyecto dinámico (pro o dev)
+          export PROJECT_NAME=${{ github.ref_name == 'master' && 'pro' || 'dev' }}
+          
+          docker compose -p $PROJECT_NAME up -d
+          sleep 5
+          echo "URL de acceso: ${{ env.APP_URL }}"
+          
+          echo "--- Logs del contenedor principal ---"
+          docker compose -p $PROJECT_NAME logs app
+
+      # EJERCICIO 9: Cleanup garantizado
+      - name: Cleanup de recursos
+        if: always() # Esto se ejecuta aunque el paso anterior falle
+        run: |
+          echo "Ejecutando limpieza (down --volumes)..."
+          export PROJECT_NAME=${{ github.ref_name == 'master' && 'pro' || 'dev' }}
+          docker compose -p $PROJECT_NAME down --volumes || true
