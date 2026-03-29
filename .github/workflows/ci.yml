@@ -105,6 +105,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Se construye la imagen con el nombre exacto que el compose tiene escrito
+      - name: Re-build App Image para el CD (Con el nombre del Compose)
+        run: |
+          echo "Construyendo imagen con el tag que espera el docker-compose.yml..."
+          docker build -t contrerasadr/devops-training-python-app:0.0.1 -f devops/Dockerfile .
+
       # EJERCICIO 9: Simulación de despliegue con Compose
       - name: Deploy con Docker Compose
         run: |
