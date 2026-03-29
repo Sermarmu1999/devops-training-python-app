@@ -20,3 +20,22 @@ ci:info:
     - echo "Commit SHA (predefinida): $CI_COMMIT_SHA"
     - echo "Host del Registry (global): $REGISTRY_HOST"
     - echo "Repositorio completo (global): $REGISTRY_REPO"
+
+# EJERCICIO 3: CI con contenedores (Docker como agente) - Ejecutar lint y test dentro de la imagen de herramientas CI
+ci:tests:
+  stage: ci
+  image: docker:27 # Imagen base para tener el cliente de docker
+  services:
+    - docker:27-dind # Levanta un motor de Docker "hijo" dentro del job
+  variables:
+    # Variable necesaria para que el cliente docker conecte con el servicio dind
+    DOCKER_TLS_CERTDIR: "" 
+    CI_TOOLS_IMAGE: "python-ci-tools:$CI_COMMIT_SHA"
+  script:
+    - echo "=== Ejercicio 3: Construyendo imagen de herramientas CI ==="
+    - docker build -t $CI_TOOLS_IMAGE -f devops/ci.Dockerfile .
+    
+    - echo "=== Ejecutando validaciones dentro del contenedor ==="
+    # Se ejecutan los comandos de Makefile aislando el código en el contenedor
+    - docker run --rm -v $(pwd):/app -w /app $CI_TOOLS_IMAGE make lint
+    - docker run --rm -v $(pwd):/app -w /app $CI_TOOLS_IMAGE make test
