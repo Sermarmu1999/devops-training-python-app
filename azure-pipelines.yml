@@ -80,3 +80,46 @@ stages:
               docker tag $(IMAGE_REPO):$(Build.SourceVersion) local-registry:5000/$(IMAGE_REPO):$(Build.SourceVersion)
               docker push local-registry:5000/$(IMAGE_REPO):$(Build.SourceVersion) || true
             displayName: 'Docker Build (App) & Push'
+
+  # EJERCICIOS 6 y 7: Fase de Despliegue Continuo (CD)
+  - stage: CD
+    displayName: 'Continuous Deployment'
+    # Ejercicio 6: Condicionado por rama (develop/master) o parámetro (RUN_CD)
+    condition: |
+      or(
+        eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/develop'),
+        eq(parameters.RUN_CD, true)
+      )
+    jobs:
+      - job: Deploy
+        displayName: 'Despliegue y Validación'
+        pool:
+          vmImage: 'ubuntu-latest'
+        variables:
+          # Ejercicio 6: Resolver DEPLOY_ENV dinámicamente según la rama
+          ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
+            DEPLOY_ENV: 'PRO'
+          ${{ elseif eq(variables['Build.SourceBranch'], 'refs/heads/develop') }}:
+            DEPLOY_ENV: 'DEV'
+          ${{ else }}:
+            DEPLOY_ENV: 'MANUAL'
+        steps:
+          - script: |
+              echo "=== Ejercicio 6: Entorno resuelto -> $(DEPLOY_ENV) ==="
+              echo "=== Ejercicio 7: Desplegando con Docker Compose ==="
+              docker compose -p python-app-$(DEPLOY_ENV) up -d
+              
+              echo "=== Mostrando logs del servicio principal ==="
+              sleep 5
+              docker compose -p python-app-$(DEPLOY_ENV) logs
+            displayName: 'Docker Compose Up & Logs'
+
+          # Ejercicio 7: Cleanup garantizado
+          - script: |
+              echo "=== Ejercicio 7: Ejecutando Cleanup (siempre) ==="
+              docker compose -p python-app-$(DEPLOY_ENV) down --volumes || true
+              docker rmi $(IMAGE_REPO):$(Build.SourceVersion) || true
+              docker rmi local-registry:5000/$(IMAGE_REPO):$(Build.SourceVersion) || true
+            displayName: 'Limpieza de recursos (Cleanup)'
+            condition: always() # Esto garantiza que se ejecute siempre, aunque falle el up
