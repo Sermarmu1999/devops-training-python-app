@@ -39,3 +39,21 @@ ci:tests:
     # Se ejecutan los comandos de Makefile aislando el código en el contenedor
     - docker run --rm -v $(pwd):/app -w /app $CI_TOOLS_IMAGE make lint
     - docker run --rm -v $(pwd):/app -w /app $CI_TOOLS_IMAGE make test
+
+# EJERCICIO 4: Build de imagen Docker de la aplicación
+# Objetivo: Construir la imagen final (Dockerfile)
+ci:build:
+  stage: ci
+  image: docker:27
+  services:
+    - docker:27-dind
+  # Solo se ejecuta si los tests unitarios han terminado con éxito
+  needs: 
+    - ci:tests
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+  script:
+    - echo "=== Ejercicio 4: Iniciando construcción de la imagen Docker ==="
+    # Se construye la imagen usando el Dockerfile
+    - docker build -t $IMAGE_REPO:$CI_COMMIT_SHA -f devops/Dockerfile .
+    - echo "Imagen construida con éxito: $IMAGE_REPO:$CI_COMMIT_SHA"
