@@ -38,7 +38,7 @@ env:
 jobs:
   # EJERCICIO 2: Estructura base y primer Job
   ci:
-    runs-on: ubuntu-latest # Se utiliza una máquina de la nube de GitHub
+    runs-on: [self-hosted, linux, docker] # EJERCICIO FINAL: Se utiliza una máquina local
 
     # Permisos necesarios para subir al Registry (Opcional A)
     permissions:
@@ -112,7 +112,7 @@ jobs:
   cd:
     # El CD necesita que el CI termine primero con éxito
     needs: ci
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker] # EJERCICIO FINAL: Se utiliza una máquina local
     # EJERCICIO 8: Condición por rama o parámetro
     if: ${{ inputs.RUN_CD == true || github.ref_name == 'develop' || github.ref_name == 'master' }}
     # Se asocia el entorno de GitHub que se ha creado antes en la web (Ejercicio 5)
